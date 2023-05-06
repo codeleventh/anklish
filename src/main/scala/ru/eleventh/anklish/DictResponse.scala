@@ -12,6 +12,8 @@ final case class Phonetic(text: Option[String])
 final case class Meaning(partOfSpeech: Option[String], definitions: List[Definition])
 
 @JsonCodec
-final case class Definition(definition: Option[String], example: Option[String], synonyms: List[String])
-
-
+final case class Definition(
+    definition: Option[String],
+    example: Option[String],
+    synonyms: List[String]
+)
