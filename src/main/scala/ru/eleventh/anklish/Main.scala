@@ -1,34 +1,48 @@
 package ru.eleventh.anklish
 
-import cats.effect.{IO, IOApp, Resource}
+import cats.effect.{ExitCode, IO, IOApp}
+import cats.implicits._
 import org.http4s.circe.CirceEntityDecoder._
 import org.http4s.client.{Client, JavaNetClientBuilder}
 import org.http4s.implicits._
 import org.slf4j.LoggerFactory
-import cats.implicits._
 
-import java.io.{File, FileInputStream, FileOutputStream, InputStream, OutputStream}
+import scala.concurrent.duration._
+import scala.io.Source
 
-object Main extends IOApp.Simple {
+object Main extends IOApp {
 
-  private val URL                = uri"https://api.dictionaryapi.dev/api/v2/entries/en"
   private val client: Client[IO] = JavaNetClientBuilder[IO].create
-  private val logger             = LoggerFactory.getLogger("whatever")
+  private val logger = LoggerFactory.getLogger(this.getClass)
 
-  private def getDefinition(word: String): IO[DictResponse] = {
+  private val DICT_API_URL = uri"https://api.dictionaryapi.dev/api/v2/entries/en"
+  private val FILE_PATH = "./src/main/resources/list.txt"
+  private val MAX_WORDS_TO_ADD = 10
+
+  private def getDefinition(word: String): IO[Either[Throwable, DictResponse]] =
     client
-      .expect[List[DictResponse]](s"$URL/$word")
+      .expect[List[DictResponse]](s"$DICT_API_URL/$word")
       .map(_.head)
-      .onError(e => IO(()).flatTap(_ => IO(logger.error(e.getMessage))))
-  }
+      .map(Right(_))
+      .handleError(Left(_))
 
-  def run: IO[Unit] = {
-    Seq("hello", "music", "violin", "cutter", "kek")
+  def run(args: List[String]): IO[ExitCode] = {
+    val source = Source.fromFile(FILE_PATH)
+    source
+      .getLines()
+      .filter(_.nonEmpty)
+      .take(MAX_WORDS_TO_ADD)
+      .toSeq
       .map(word => {
-        getDefinition(word).map(w =>
-          logger.info(s"$word: ${w.meanings.head.definitions.head.definition.get}")
-        )
+        IO.sleep(0.5.second) *>
+          getDefinition(word).map({
+            case Left(err) =>
+              logger.error(s"$word: ${err.getMessage}")
+            case Right(dict) =>
+              logger.info(s"$word: ${dict.meanings.head.definitions.head.definition.get}")
+          })
       })
       .sequence_
+      .as(ExitCode.Success)
   }
 }
