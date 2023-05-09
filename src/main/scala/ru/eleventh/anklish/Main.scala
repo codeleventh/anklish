@@ -18,13 +18,18 @@ object Main extends IOApp {
   private val DICT_API_URL = uri"https://api.dictionaryapi.dev/api/v2/entries/en"
   private val FILE_PATH = "./src/main/resources/list.txt"
   private val MAX_WORDS_TO_ADD = 10
+  private val RETRIES = 3
 
-  private def getDefinition(word: String): IO[Either[Throwable, DictResponse]] =
+  private def getDefinition(word: String, retries: Int): IO[Either[Throwable, DictResponse]] =
     client
       .expect[List[DictResponse]](s"$DICT_API_URL/$word")
       .map(_.head)
+      .flatTap(res => IO(logger.info(res.meanings.head.definitions.head.definition.get)))
       .map(Right(_))
-      .handleError(Left(_))
+      .handleErrorWith(err => retries match {
+        case 0 => IO(Left(err))
+        case _ => IO(logger.error(s"$word: ${err.getMessage}")) *> getDefinition(word, retries - 1)
+      })
 
   def run(args: List[String]): IO[ExitCode] = {
     val source = Source.fromFile(FILE_PATH)
@@ -33,15 +38,7 @@ object Main extends IOApp {
       .filter(_.nonEmpty)
       .take(MAX_WORDS_TO_ADD)
       .toSeq
-      .map(word => {
-        IO.sleep(0.5.second) *>
-          getDefinition(word).map({
-            case Left(err) =>
-              logger.error(s"$word: ${err.getMessage}")
-            case Right(dict) =>
-              logger.info(s"$word: ${dict.meanings.head.definitions.head.definition.get}")
-          })
-      })
+      .map(IO.sleep(0.5.second) *> getDefinition(_, RETRIES))
       .sequence_
       .as(ExitCode.Success)
   }
