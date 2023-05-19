@@ -1,4 +1,4 @@
-package ru.eleventh.anklish
+package ru.eleventh.anklish.model
 
 import io.circe.generic.JsonCodec
 
