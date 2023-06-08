@@ -16,22 +16,6 @@ object Main extends IOApp {
   implicit val httpClient: Client[IO] = JavaNetClientBuilder[IO].create
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  def run(args: List[String]): IO[ExitCode] = {
-    val config: Args.Config = OParser.parse(Args.parser, args, Args.Config()).get
-    val source = Source.fromFile(config.files.head) // TODO: use all specified files
-
-    val wordlist = source // TODO: make it IO
-      .getLines()
-      .filter(_.nonEmpty)
-      .take(config.maxCardsToAdd)
-
-    val definitions = wordlist.map(getDefinition(_, NET_RETRIES)).toSeq.sequence
-    val addedCards = definitions.map {
-      _.collect({ case Right(res) => res }).map(???)
-    }
-    definitions.as(ExitCode.Success)
-  }
-
   private def getDefinition(word: String, retries: Int): IO[Either[Throwable, DictResponse]] =
     httpClient
       .expect[List[DictResponse]](s"$NET_DICT_API_URL/$word")
@@ -53,4 +37,23 @@ object Main extends IOApp {
         case Right(suc) =>
           IO(logger.info(s"$word: ${suc.phonetics.head.text.getOrElse("/nəʊ fəʊˈnɛtɪks faʊnd/")}"))
       }
+
+  def run(args: List[String]): IO[ExitCode] = {
+    val config: Args.Config = OParser.parse(Args.parser, args, Args.Config()).get
+    val source: Source = Source.fromFile(config.files.head) // TODO: use all specified files
+    val ankiClient: AnkiConnectClient = AnkiConnectClient(config)
+
+    val wordlist = source // TODO: make it IO
+      .getLines()
+      .filter(_.nonEmpty)
+      .take(config.maxCardsToAdd)
+
+    for {
+      _ <- ankiClient.getVersion
+      _ <- ankiClient.getDeckStats(config.deck.get)
+      _ <- ankiClient.deckNamesAndIds
+      _ <- wordlist.map(getDefinition(_, NET_RETRIES)).toSeq.sequence
+      _ <- ankiClient.addNote(config.deck.get, "<emphasis>front</emphasis>", "<code>back</code>")
+    } yield ExitCode.Success
+  }
 }
