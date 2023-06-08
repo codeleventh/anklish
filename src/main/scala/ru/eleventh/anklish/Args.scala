@@ -42,7 +42,7 @@ object Args {
         .optional()
         .maxOccurs(1)
         .text(
-          "Path to Anki binary. It will be executed if Anki Connect port will not respond"
+          "Path to Anki binary. It will be triggered to run if Anki Connect port will not respond"
         ),
       opt[String]("deck")
         .action((x, c) => c.copy(deck = Some(x)))
