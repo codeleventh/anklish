@@ -13,7 +13,7 @@ case class Fields(front: String, back: String)
 case class Note(
                  deckName: String,
                  modelName: String,
-                 fields: Fields,
+                 fields: Fields
                )
 
 @JsonCodec
