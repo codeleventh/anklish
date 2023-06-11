@@ -10,7 +10,7 @@ object Const {
   val NET_DELAY: FiniteDuration = 1.second
 
   val ARG_MAX_CARDS = 10
-  val ARG_ANKI_PATH = "anki"
+  val ARG_ANKI_BINARY_PATH = "anki"
 
   val ANKI_CONNECT_URL = "http://localhost:8765"
   val ANKI_CONNECT_VERSION = 6

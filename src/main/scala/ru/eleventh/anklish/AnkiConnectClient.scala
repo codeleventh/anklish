@@ -12,6 +12,7 @@ import ru.eleventh.anklish.Args.Config
 import ru.eleventh.anklish.Const.ANKI_CONNECT_URL
 import ru.eleventh.anklish.model._
 
+
 case class AnkiConnectClient(config: Config)(implicit httpClient: Client[IO], logger: Logger) {
 
   private val ankiRequest = Request[IO]()
@@ -24,7 +25,6 @@ case class AnkiConnectClient(config: Config)(implicit httpClient: Client[IO], lo
       case Some(m) => m.group(1)
       case None => throw new RuntimeException("Can't parse AnkiConnect version")
     }).map(_.toInt)
-    _ <- IO(logger.info(s"AnkiConnect major version is $majorVersion"))
   } yield majorVersion
 
   def getDeckStats(deckName: String): IO[Seq[DeckStat]] = {
@@ -48,7 +48,7 @@ case class AnkiConnectClient(config: Config)(implicit httpClient: Client[IO], lo
       .flatTap(ds => IO(logger.info(ds.values.mkString(", "))))
   }
 
-  def addNote(deckName: String, front: String, back: String): IO[AnkiResponse[Long]] = {
+  def addNote(deckName: String, card: (String, String)): IO[AnkiResponse[Long]] = {
     import org.http4s.circe.CirceEntityDecoder.circeEntityDecoder
 
     httpClient
@@ -59,14 +59,14 @@ case class AnkiConnectClient(config: Config)(implicit httpClient: Client[IO], lo
               Note(
                 deckName,
                 "Basic",
-                Fields(front, back)
+                Fields(card._1, card._2)
               )
             ),
             Options(allowDuplicate = false)
           )
         )
       )
-      .flatTap(_ => IO(logger.info(s"Note \"$front\" was added")))
+      .flatTap(_ => IO(logger.info(s"Note \"${card._1}\" was added")))
       .onError(e => IO(logger.error(e.getMessage)))
   }
 }

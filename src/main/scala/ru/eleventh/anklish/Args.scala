@@ -9,14 +9,6 @@ object Args {
 
   private val builder: OParserBuilder[Config] = OParser.builder[Config]
 
-  case class Config(
-      maxUnlearnedCards: Int = Int.MaxValue, // TODO:
-      maxCardsToAdd: Int = ARG_MAX_CARDS,
-      ankiPath: String = ARG_ANKI_PATH, // TODO:
-      deck: Option[String] = None,      // TODO:
-      files: Seq[File] = Seq.empty
-  )
-
   val parser: OParser[Unit, Config] = {
     import builder._
     OParser.sequence(
@@ -37,8 +29,8 @@ object Args {
         .text(
           "The number of unlearned cards in the deck, which should not be exceeded (taking into account the added ones). Takes precedence over the previous argument"
         ),
-      opt[String]("anki-path")
-        .action((x, c) => c.copy(ankiPath = x))
+      opt[String]("anki-binary-path")
+        .action((x, c) => c.copy(ankiBinaryPath = x))
         .optional()
         .maxOccurs(1)
         .text(
@@ -59,4 +51,12 @@ object Args {
       help("help").text("Print help and exit")
     )
   }
+
+  case class Config(
+                     maxUnlearnedCards: Int = Int.MaxValue, // TODO:
+                     maxCardsToAdd: Int = ARG_MAX_CARDS,
+                     ankiBinaryPath: String = ARG_ANKI_BINARY_PATH,
+                     deck: Option[String] = None, // TODO:
+                     files: Seq[File] = Seq.empty
+                   )
 }
