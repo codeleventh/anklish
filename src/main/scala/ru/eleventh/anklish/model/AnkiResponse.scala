@@ -8,6 +8,6 @@ case class AnkiResponse[A](result: Option[A] = None, error: Option[String] = Non
   def fromOptions: IO[A] =
     IO.fromEither(result match {
       case Some(_) => Right(result.get)
-      case None => Left(new RuntimeException(error.get))
+      case None    => Left(new RuntimeException(error.get))
     })
 }

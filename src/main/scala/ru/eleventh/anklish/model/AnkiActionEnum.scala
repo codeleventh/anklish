@@ -4,6 +4,6 @@ object AnkiActionEnum extends Enumeration {
   type AnkiActionEnum = String
 
   val DeckNamesAndIds = "deckNamesAndIds"
-  val GetDeckStats = "getDeckStats"
-  val AddNote = "addNote"
+  val GetDeckStats    = "getDeckStats"
+  val AddNote         = "addNote"
 }
