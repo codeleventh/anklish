@@ -4,10 +4,10 @@ import io.circe.generic.JsonCodec
 import ru.eleventh.anklish.model.AnkiActionEnum.AnkiActionEnum
 
 @JsonCodec
-case class Options(allowDuplicate: Boolean)
+case class Options(allowDuplicate: Boolean, duplicateScope: String)
 
 @JsonCodec
-case class Fields(front: String, back: String)
+case class Fields(Front: String, Back: String)
 
 @JsonCodec
 case class Note(

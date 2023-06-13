@@ -19,7 +19,11 @@ object Main extends IOApp {
   implicit val httpClient: Client[IO] = JavaNetClientBuilder[IO].create
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  private def formatCard(definition: DictResponse): (String, String) = ???
+  private def formatCard(definition: DictResponse): (String, String) = (
+    definition.word,
+    definition.phonetics.headOption
+      .map(_.text.getOrElse("/nəʊ fəʊˈnɛtɪks faʊnd/")).get
+  )
 
   private def getDefinition(word: String, retries: Int): IO[Either[Throwable, DictResponse]] = {
     httpClient
@@ -39,12 +43,7 @@ object Main extends IOApp {
       }
       .flatTap {
         case Left(err) => IO(logger.error(s"$word: ${err.getMessage}"))
-        case Right(suc) =>
-          IO(
-            logger.info(
-              s"$word: ${suc.phonetics.headOption.map(_.text).getOrElse("/nəʊ fəʊˈnɛtɪks faʊnd/")}"
-            )
-          )
+        case Right(_) => IO(logger.info(s"Got definition for \"$word\""))
       }
   }
 
@@ -53,39 +52,48 @@ object Main extends IOApp {
     val source: Source = Source.fromFile(config.files.head) // TODO: use all of specified files
     val ankiClient: AnkiConnectClient = AnkiConnectClient(config)
 
-    for {
-      wordlist <- IO(
-        source
-          .getLines()
-          .filter(_.nonEmpty)
-          .take(config.maxCardsToAdd)
-      )
-      _ <- ankiClient.getVersion
-        .recoverWith(_ =>
-          IO(Process(config.ankiBinaryPath).run) >> IO.sleep(2.seconds) *> ankiClient.getVersion
+    {
+      for {
+        wordlist <- IO(
+          source
+            .getLines()
+            .filter(_.nonEmpty)
+            .take(config.maxCardsToAdd)
         )
-        .flatTap({
-          case ANKI_CONNECT_VERSION => IO()
-          case version =>
-            IO(
-              logger.warn(
-                s"Anki Connect major version is differs from target ($version != $ANKI_CONNECT_VERSION)"
+        _ <- ankiClient.getVersion
+          .recoverWith(_ =>
+            IO(Process(config.ankiBinaryPath).run) >> IO.sleep(2.seconds) *> ankiClient.getVersion
+          )
+          .flatTap({
+            case ANKI_CONNECT_VERSION => IO()
+            case version =>
+              IO(
+                logger.warn(
+                  s"Anki Connect major version is differs from target ($version != $ANKI_CONNECT_VERSION)"
+                )
               )
-            )
-        })
-        .onError(err =>
-          IO(println(s"Cannot connect to Anki Connect ($ANKI_CONNECT_URL): ${err.getMessage}"))
-        )
+          })
+          .onError(err =>
+            IO(println(s"Cannot connect to Anki Connect ($ANKI_CONNECT_URL): ${err.getMessage}"))
+          )
 
-      _ <- ankiClient.getDeckStats(config.deck.get)
-      _ <- ankiClient.deckNamesAndIds
-      definitions = wordlist.map(getDefinition(_, NET_RETRIES)).toSeq.sequence
-      _ <- definitions.map(
-        _.collect({ case Right(res) => res }).map(definition =>
-          ankiClient.addNote(config.deck.get, formatCard(definition))
-        )
-      )
-    } yield ExitCode.Success
+        _ <- ankiClient.getDeckStats(config.deck.get)
+        _ <- ankiClient.deckNamesAndIds
+
+        definitions <- wordlist
+          .map(getDefinition(_, NET_RETRIES))
+          .toSeq
+          .sequence
+          .map(_.collect({ case Right(res) => res }))
+        _ <- definitions
+          .traverse_(definition => {
+            val card = formatCard(definition)
+            ankiClient
+              .addNote(config.deck.get, card)
+              .flatTap(_ => IO(logger.info(s"Note \"${card._1}\" was added")))
+              .handleErrorWith(err => IO(logger.error(err.getMessage)))
+          })
+      } yield ()
+    } *> IO(ExitCode.Success)
   }
-
 }
