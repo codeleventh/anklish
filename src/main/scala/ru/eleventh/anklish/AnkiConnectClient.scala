@@ -22,7 +22,7 @@ case class AnkiConnectClient(config: Config)(implicit httpClient: Client[IO], lo
     res <- httpClient.expect[String](s"$ANKI_CONNECT_URL")
     majorVersion <- IO("AnkiConnect v\\.(.+)\\.?".r.findFirstMatchIn(res) match {
       case Some(m) => m.group(1)
-      case None => throw new RuntimeException("Can't parse AnkiConnect version")
+      case None    => throw new RuntimeException("Can't parse AnkiConnect version")
     }).map(_.toInt)
   } yield majorVersion
 

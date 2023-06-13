@@ -22,7 +22,8 @@ object Main extends IOApp {
   private def formatCard(definition: DictResponse): (String, String) = (
     definition.word,
     definition.phonetics.headOption
-      .map(_.text.getOrElse("/nəʊ fəʊˈnɛtɪks faʊnd/")).get
+      .map(_.text.getOrElse("/nəʊ fəʊˈnɛtɪks faʊnd/"))
+      .get
   )
 
   private def getDefinition(word: String, retries: Int): IO[Either[Throwable, DictResponse]] = {
@@ -57,7 +58,7 @@ object Main extends IOApp {
         wordlist <- IO(
           source
             .getLines()
-            .filter(_.nonEmpty)
+            .filter(_.trim.nonEmpty)
             .take(config.maxCardsToAdd)
         )
         _ <- ankiClient.getVersion

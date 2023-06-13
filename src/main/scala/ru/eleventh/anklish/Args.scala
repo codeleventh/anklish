@@ -53,10 +53,10 @@ object Args {
   }
 
   case class Config(
-                     maxUnlearnedCards: Int = Int.MaxValue, // TODO:
-                     maxCardsToAdd: Int = ARG_MAX_CARDS,
-                     ankiBinaryPath: String = ARG_ANKI_BINARY_PATH,
-                     deck: Option[String] = None, // TODO:
-                     files: Seq[File] = Seq.empty
-                   )
+      maxUnlearnedCards: Int = Int.MaxValue, // TODO:
+      maxCardsToAdd: Int = ARG_MAX_CARDS,
+      ankiBinaryPath: String = ARG_ANKI_BINARY_PATH,
+      deck: Option[String] = None, // TODO:
+      files: Seq[File] = Seq.empty
+  )
 }
