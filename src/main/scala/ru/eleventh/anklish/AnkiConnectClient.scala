@@ -12,7 +12,6 @@ import ru.eleventh.anklish.Args.Config
 import ru.eleventh.anklish.Const.ANKI_CONNECT_URL
 import ru.eleventh.anklish.model._
 
-
 case class AnkiConnectClient(config: Config)(implicit httpClient: Client[IO], logger: Logger) {
 
   private val ankiRequest = Request[IO]()
@@ -48,7 +47,7 @@ case class AnkiConnectClient(config: Config)(implicit httpClient: Client[IO], lo
       .flatTap(ds => IO(logger.info(ds.values.mkString(", "))))
   }
 
-  def addNote(deckName: String, card: (String, String)): IO[AnkiResponse[Long]] = {
+  def addNote(deckName: String, card: (String, String)): IO[Long] = {
     import org.http4s.circe.CirceEntityDecoder.circeEntityDecoder
 
     httpClient
@@ -62,11 +61,10 @@ case class AnkiConnectClient(config: Config)(implicit httpClient: Client[IO], lo
                 Fields(card._1, card._2)
               )
             ),
-            Options(allowDuplicate = false)
+            Options(allowDuplicate = false, duplicateScope = "deck")
           )
         )
       )
-      .flatTap(_ => IO(logger.info(s"Note \"${card._1}\" was added")))
-      .onError(e => IO(logger.error(e.getMessage)))
+      .flatMap(_.fromOptions)
   }
 }
