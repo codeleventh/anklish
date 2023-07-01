@@ -3,17 +3,15 @@ package ru.eleventh.anklish.model
 import io.circe.generic.JsonCodec
 
 @JsonCodec
-final case class DictResponse(word: String, phonetics: List[Phonetic], meanings: List[Meaning])
+final case class DictResponse(word: String, phonetic: Option[String], meanings: List[Meaning])
 
 @JsonCodec
-final case class Phonetic(text: Option[String])
-
-@JsonCodec
-final case class Meaning(partOfSpeech: Option[String], definitions: List[Definition])
+final case class Meaning(partOfSpeech: String, definitions: List[Definition])
 
 @JsonCodec
 final case class Definition(
-    definition: Option[String],
+    definition: String,
     example: Option[String],
-    synonyms: List[String]
+    synonyms: List[String],
+    antonyms: List[String]
 )

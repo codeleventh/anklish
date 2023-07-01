@@ -100,11 +100,15 @@ object Main extends IOApp {
       }
   }
 
-  private def formatCard(definition: DictResponse): (String, String) = (
-    definition.word,
-    definition.phonetics.headOption
-      .map(_.text.getOrElse("/nəʊ fəʊˈnɛtɪks faʊnd/"))
-      .getOrElse("TODO") // TODO: TODO
+  private def formatCard(dict: DictResponse): (String, String) = (
+    dict.word + dict.phonetic.map("<br/>" + _).getOrElse(""),
+    dict.meanings
+      .map(meaning => {
+        val definitions =
+          meaning.definitions.zipWithIndex.map { case (d, i) => s"${i + 1}. ${d.definition}" }
+        s"<i>${meaning.partOfSpeech}</i><br/>${definitions.mkString("<br/>")}"
+      })
+      .mkString("<br/><br/>")
   )
 
   def run(args: List[String]): IO[ExitCode] = {
