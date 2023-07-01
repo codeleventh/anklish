@@ -10,6 +10,7 @@ import ru.eleventh.anklish.HttpClient.{getDefinition, httpClient}
 import ru.eleventh.anklish.model.{DeckStat, DictResponse}
 import scopt.OParser
 
+import java.nio.file.{Files, Paths}
 import scala.concurrent.duration.DurationInt
 import scala.io.Source
 import scala.math.min
@@ -57,30 +58,29 @@ object Main extends IOApp {
       deck <- ankiClient.getDeckStats(deckName.get)
     } yield deck.get
 
-  private def addDefinition(deckName: String)(wordLine: String)(implicit
+  private def addDefinition(deckName: String)(word: String)(implicit
       ankiClient: AnkiConnectClient
   ): IO[Boolean] =
-    if (wordLine.trim.isEmpty) IO(false)
-    else {
-      IO.sleep(NET_WAIT_RETRY) *> getDefinition(wordLine.trim, NET_RETRIES)
-        .flatMap {
-          case Right(definition) =>
-            val card = formatCard(definition)
-            ankiClient
-              .addNote(deckName, card)
-              .flatTap(_ => IO(logger.info(s"Card \"${card._1}\": note was added")))
-              .as(true)
-              .handleErrorWith {
-                case err: InvalidMessageBodyFailure
-                    if err.getMessage.contains("Could not decode JSON") =>
-                  IO(logger.info(s"Card \"${card._1}\": note was added")) *> IO(true)
-                // TODO: fix decoder
-                case err: Throwable =>
-                  IO(logger.error(s"Card \"${card._1}\": ${err.getMessage}")) *> IO(false)
-              }
-          case Left(_) => IO(false)
-        }
-    }
+    IO.sleep(NET_WAIT_RETRY) *> getDefinition(word, NET_RETRIES)
+      .flatMap {
+        case Right(definition) =>
+          val card = formatCard(definition)
+          ankiClient
+            .addNote(deckName, card)
+            .flatTap(_ => IO(logger.info(s"Card \"${card._1}\": note was added")))
+            .as(true)
+            .handleErrorWith {
+              case err: InvalidMessageBodyFailure
+                  if err.getMessage.contains("Could not decode JSON") =>
+                IO(logger.info(s"Card \"$word\": note was added")) *> IO(true)
+              // TODO: fix decoder
+              case err if err.getMessage.contains("cannot create note because it is a duplicate") =>
+                IO(logger.warn(s"Card \"$word\": ${err.getMessage}")) *> IO(false)
+              case err =>
+                IO(logger.error(s"Card \"$word\": ${err.getMessage}")) *> IO(false)
+            }
+        case Left(_) => IO(false)
+      }
 
   private def dropUntilSucceededN[A](
       list: List[A],
@@ -131,8 +131,19 @@ object Main extends IOApp {
       )
       _ = logger.info(s"Cards to add: $cardsToAdd")
 
-      wordlist <- IO(source).bracket(src => IO(src.getLines().toList))(source => IO(source.close()))
+      wordlist <- IO(source).bracket(src =>
+        IO(src.getLines().map(_.trim).filter(_.nonEmpty).toList)
+      )(source => IO(source.close()))
       leftovers <- dropUntilSucceededN(wordlist, cardsToAdd, addDefinition(activeDeckName))
+
+      inputFilePath = Paths.get(inputFile.getAbsolutePath)
+      tmpFilePath   = Paths.get(inputFilePath + ".tmp")
+      _ <- IO(new java.io.PrintWriter(tmpFilePath.toFile)).bracket(writer => {
+        IO(writer.write(leftovers.mkString(System.lineSeparator))) *> IO(writer.flush())
+      })(writer => IO(writer.close()))
+
+      _ = Files.delete(inputFilePath)
+      _ = Files.move(tmpFilePath, inputFilePath)
     } yield ()
   }.as(ExitCode.Success)
 }
