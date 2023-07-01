@@ -23,12 +23,12 @@ object HttpClient {
         case Left(e)             => Left(e)
       }
       .flatMap {
-        case suc => IO(suc)
         case Left(e) =>
           retries match {
             case 0 => IO(Left(e))
             case _ => IO.sleep(NET_WAIT_RETRY) *> getDefinition(word, retries - 1)
           }
+        case success => IO(success)
       }
       .flatTap {
         case Left(e)  => IO(logger.error(s"Word \"$word\": ${e.getMessage}"))

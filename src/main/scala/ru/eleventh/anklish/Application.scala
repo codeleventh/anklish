@@ -25,7 +25,7 @@ object Application extends IOApp {
   )(implicit ankiClient: AnkiConnectClient): IO[Unit] = {
     ankiClient.getVersion
       .recoverWith(_ =>
-        IO(Process(ankiBinaryPath).run) *> IO.sleep(3.seconds) *> ankiClient.getVersion
+        IO(Process(ankiBinaryPath).run()) *> IO.sleep(3.seconds) *> ankiClient.getVersion
       )
       .flatMap {
         case ANKI_CONNECT_VERSION => IO.unit
@@ -34,7 +34,7 @@ object Application extends IOApp {
             logger.warn(
               s"Anki Connect major version is differs from the target ($version != $ANKI_CONNECT_VERSION)"
             )
-          ).as()
+          ) *> IO.unit
       }
       .orRaise(new RuntimeException(s"Cannot connect to Anki Connect ($ANKI_CONNECT_URL)"))
   }
@@ -91,12 +91,12 @@ object Application extends IOApp {
     case 0 => IO(acc ++ list)
     case _ =>
       list match {
-        case Nil => IO(acc ++ list)
         case head +: tail =>
           f(head) >>= {
             case true  => dropUntilSucceededN(tail, n - 1, f, acc)
             case false => dropUntilSucceededN(tail, n, f, acc appended head)
           }
+        case Nil | _ => IO(acc ++ list)
       }
   }
 
@@ -141,7 +141,7 @@ object Application extends IOApp {
       leftovers <- dropUntilSucceededN(wordlist, cardsToAdd, addDefinition(activeDeckName))
 
       inputFilePath = Paths.get(inputFile.getAbsolutePath)
-      tmpFilePath   = Paths.get(inputFilePath + ".tmp")
+      tmpFilePath   = Paths.get(inputFilePath.toString + ".tmp")
       _ <- IO(new java.io.PrintWriter(tmpFilePath.toFile)).bracket(writer => {
         IO(writer.write(leftovers.mkString(System.lineSeparator))) *> IO(writer.flush())
       })(writer => IO(writer.close()))

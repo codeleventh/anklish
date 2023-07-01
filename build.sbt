@@ -4,7 +4,7 @@ lazy val root = (project in file("."))
     name         := "anklish",
     version      := "1.0",
     scalaVersion := "2.13.9",
-    scalacOptions ++= Seq("-Ymacro-annotations"),
+    scalacOptions ++= Seq("-Ymacro-annotations", "-deprecation"),
     libraryDependencies ++= Seq(
       "org.typelevel"    % "cats-effect_2.13"     % CatsVersion,
       "org.http4s"      %% "http4s-ember-server"  % Http4sVersion,
