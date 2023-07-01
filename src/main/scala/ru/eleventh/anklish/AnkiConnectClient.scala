@@ -26,7 +26,7 @@ case class AnkiConnectClient(config: Config)(implicit httpClient: Client[IO], lo
     }).map(_.toInt)
   } yield majorVersion
 
-  def getDeckStats(deckName: String): IO[Seq[DeckStat]] = {
+  def getDeckStats(deckName: String): IO[Option[DeckStat]] = {
     import org.http4s.circe.CirceEntityDecoder.circeEntityDecoder
     implicit val decoder: Decoder[Seq[DeckStat]] = _.as[Map[String, DeckStat]].map(_.values.toSeq)
 
@@ -35,7 +35,7 @@ case class AnkiConnectClient(config: Config)(implicit httpClient: Client[IO], lo
         ankiRequest.withEntity(RequestGetDeckStats(ParamsGetDeckStats(Seq(deckName))).asJson)
       )
       .onError(e => IO(logger.error(e.getMessage)))
-      .flatTap(ds => IO(logger.info(ds.map(_.name).mkString(", "))))
+      .map(_.headOption)
   }
 
   def deckNamesAndIds: IO[Map[String, Long]] = {
@@ -44,7 +44,6 @@ case class AnkiConnectClient(config: Config)(implicit httpClient: Client[IO], lo
     httpClient
       .expect[Map[String, Long]](ankiRequest.withEntity(RequestDeckNamesAndIds()))
       .onError(e => IO(logger.error(e.getMessage)))
-      .flatTap(ds => IO(logger.info(ds.values.mkString(", "))))
   }
 
   def addNote(deckName: String, card: (String, String)): IO[Long] = {

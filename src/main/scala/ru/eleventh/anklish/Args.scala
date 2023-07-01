@@ -23,11 +23,12 @@ object Args {
           s"The maximum number of cards that should be added to the deck. $ARG_MAX_CARDS as default"
         ),
       opt[Int]("max-unlearned-cards")
-        .action((x, c) => c.copy(maxUnlearnedCards = x))
+        .abbr("max")
+        .action((x, c) => c.copy(maxUnlearnedCards = Some(x)))
         .optional()
         .maxOccurs(1)
         .text(
-          "The number of unlearned cards in the deck, which should not be exceeded (taking into account the added ones). Takes precedence over the previous argument"
+          "The number of unlearned cards in the deck, which should not be exceeded (taking into account the existing ones).\nThis parameter (if it is less) will take precedence over the previous one"
         ),
       opt[String]("anki-binary-path")
         .action((x, c) => c.copy(ankiBinaryPath = x))
@@ -36,8 +37,9 @@ object Args {
         .text(
           "Path to Anki binary. It will be triggered to run if Anki Connect port will not respond"
         ),
-      opt[String]("deck")
-        .action((x, c) => c.copy(deck = Some(x)))
+      opt[String]("deckName")
+        .abbr("d")
+        .action((x, c) => c.copy(deckName = Some(x)))
         .optional()
         .maxOccurs(1)
         .text(
@@ -53,10 +55,10 @@ object Args {
   }
 
   case class Config(
-      maxUnlearnedCards: Int = Int.MaxValue, // TODO:
+      maxUnlearnedCards: Option[Int] = None,
       maxCardsToAdd: Int = ARG_MAX_CARDS,
       ankiBinaryPath: String = ARG_ANKI_BINARY_PATH,
-      deck: Option[String] = None, // TODO:
+      deckName: Option[String] = None,
       files: Seq[File] = Seq.empty
   )
 }
