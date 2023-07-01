@@ -120,7 +120,7 @@ object Application extends IOApp {
       source = Source.fromFile(inputFile)
 
       _          <- runAnki(config.ankiBinaryPath)
-      activeDeck <- getActiveDeck(config.deckName)
+      activeDeck <- getActiveDeck(config.deck)
       activeDeckName = activeDeck.name
       _              = logger.info(s"Using deck \"$activeDeckName\"")
 
