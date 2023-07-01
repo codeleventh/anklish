@@ -108,25 +108,29 @@ object Main extends IOApp {
   )
 
   def run(args: List[String]): IO[ExitCode] = {
-    val config: Args.Config = OParser.parse(Args.parser, args, Args.Config()).get
-    val source: Source      = Source.fromFile(config.files.head) // TODO: use all of specified files
+    val config: Args.Config                    = OParser.parse(Args.parser, args, Args.Config()).get
     implicit val ankiClient: AnkiConnectClient = AnkiConnectClient(config)
 
     for {
+      inputFile <- IO.fromOption(config.file)(new RuntimeException("Input file wasn't specified"))
+      source = Source.fromFile(inputFile)
+
       _          <- runAnki(config.ankiBinaryPath)
       activeDeck <- getActiveDeck(config.deckName)
       activeDeckName = activeDeck.name
       _              = logger.info(s"Using deck \"$activeDeckName\"")
-      cardsToAdd <- IO((config.maxCardsToAdd, config.maxUnlearnedCards) match {
+
+      cardsToAdd = (config.maxCardsToAdd, config.maxUnlearnedCards) match {
         case (max, None)               => max
         case (max, Some(maxUnlearned)) => min(max, maxUnlearned - activeDeck.learn_count)
-      })
+      }
       _ <- IO.whenA(cardsToAdd <= 0)(
         IO.raiseError(
           new RuntimeException("No cards should be added at this time due to 'max' argument")
         )
       )
       _ = logger.info(s"Cards to add: $cardsToAdd")
+
       wordlist <- IO(source).bracket(src => IO(src.getLines().toList))(source => IO(source.close()))
       leftovers <- dropUntilSucceededN(wordlist, cardsToAdd, addDefinition(activeDeckName))
     } yield ()
