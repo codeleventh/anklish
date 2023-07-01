@@ -45,11 +45,11 @@ object Args {
         .text(
           "Deck for adding the cards. If no deck specified, the default deck will be used"
         ),
-      arg[File]("<input_file>...")
+      arg[File]("<input_file>")
         .required()
-        .unbounded()
-        .action((x, c) => c.copy(files = c.files :+ x))
-        .text("Input file(s) with word list"),
+        .maxOccurs(1)
+        .action((x, c) => c.copy(file = Some(x)))
+        .text("Input file with word list"),
       help("help").text("Print help and exit")
     )
   }
@@ -59,6 +59,6 @@ object Args {
       maxCardsToAdd: Int = ARG_MAX_CARDS,
       ankiBinaryPath: String = ARG_ANKI_BINARY_PATH,
       deckName: Option[String] = None,
-      files: Seq[File] = Seq.empty
+      file: Option[File] = None
   )
 }
