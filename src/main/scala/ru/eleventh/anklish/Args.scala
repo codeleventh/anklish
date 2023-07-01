@@ -29,14 +29,14 @@ object Args {
         .optional()
         .maxOccurs(1)
         .text(
-          s"Path to Anki binary. It will be triggered to run if Anki Connect port will not respond (\"$ARG_ANKI_BINARY_PATH\" as default)"
+          s"Path to Anki binary. It will be triggered to run if the Anki Connect port does not respond (\"$ARG_ANKI_BINARY_PATH\" as a default)"
         ),
       opt[Int]("max-cards-to-add")
         .action((x, c) => c.copy(maxCardsToAdd = x))
         .optional()
         .maxOccurs(1)
         .text(
-          s"The maximum number of cards that should be added to the deck ($ARG_MAX_CARDS as default)"
+          s"The maximum number of cards to be added to the deck ($ARG_MAX_CARDS as a default)"
         ),
       opt[Int]("max-unlearned-cards")
         .abbr("max")
@@ -44,13 +44,13 @@ object Args {
         .optional()
         .maxOccurs(1)
         .text(
-          "The number of unlearned cards in the deck, which should not be exceeded (taking into account the existing ones).\nThis parameter (if it isn't greater) will take precedence over the previous one"
+          "The maximum number of unlearned cards allowed in the deck (taking into account the existing ones).\nThis parameter (if it isn't greater) takes precedence over previous one"
         ),
       arg[File]("<input_file>")
         .required()
         .maxOccurs(1)
         .action((x, c) => c.copy(file = Some(x)))
-        .text("Input file with word list"),
+        .text("Input file containing the word list"),
       help("help").text("Print help and exit")
     )
   }
