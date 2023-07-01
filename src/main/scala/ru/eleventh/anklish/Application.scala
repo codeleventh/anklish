@@ -16,7 +16,7 @@ import scala.io.Source
 import scala.math.min
 import scala.sys.process.Process
 
-object Main extends IOApp {
+object Application extends IOApp {
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
