@@ -15,6 +15,21 @@ object Args {
       programName("anklish"),
       head("Scala script for adding English words to Anki decks"),
       head("Check the GitHub repository for more info: https://github.com/codeleventh/anklish"),
+      opt[String]("deckName")
+        .abbr("d")
+        .action((x, c) => c.copy(deckName = Some(x)))
+        .optional()
+        .maxOccurs(1)
+        .text(
+          "Anki deck for adding the cards. If no deck specified, the default deck will be used"
+        ),
+      opt[String]("anki-binary-path")
+        .action((x, c) => c.copy(ankiBinaryPath = x))
+        .optional()
+        .maxOccurs(1)
+        .text(
+          "Path to Anki binary. It will be triggered to run if Anki Connect port will not respond"
+        ),
       opt[Int]("max-cards-to-add")
         .action((x, c) => c.copy(maxCardsToAdd = x))
         .optional()
@@ -29,21 +44,6 @@ object Args {
         .maxOccurs(1)
         .text(
           "The number of unlearned cards in the deck, which should not be exceeded (taking into account the existing ones).\nThis parameter (if it is less) will take precedence over the previous one"
-        ),
-      opt[String]("anki-binary-path")
-        .action((x, c) => c.copy(ankiBinaryPath = x))
-        .optional()
-        .maxOccurs(1)
-        .text(
-          "Path to Anki binary. It will be triggered to run if Anki Connect port will not respond"
-        ),
-      opt[String]("deckName")
-        .abbr("d")
-        .action((x, c) => c.copy(deckName = Some(x)))
-        .optional()
-        .maxOccurs(1)
-        .text(
-          "Deck for adding the cards. If no deck specified, the default deck will be used"
         ),
       arg[File]("<input_file>")
         .required()
