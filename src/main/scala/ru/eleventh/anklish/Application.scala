@@ -25,7 +25,11 @@ object Application extends IOApp {
   )(implicit ankiClient: AnkiConnectClient): IO[Unit] = {
     ankiClient.getVersion
       .recoverWith(_ =>
-        IO(Process(ankiBinaryPath).run()) *> IO.sleep(3.seconds) *> ankiClient.getVersion
+        IO(Process(ankiBinaryPath).run()) *>
+          IO.sleep(ANKI_CONNECT_RETRY) *>
+          ankiClient.getVersion *>
+          IO.sleep(ANKI_CONNECT_RETRY) *>
+          ankiClient.getVersion
       )
       .flatMap {
         case ANKI_CONNECT_VERSION => IO.unit
@@ -36,7 +40,11 @@ object Application extends IOApp {
             )
           ) *> IO.unit
       }
-      .orRaise(new RuntimeException(s"Cannot connect to Anki Connect ($ANKI_CONNECT_URL)"))
+      .orRaise(
+        new RuntimeException(
+          s"Cannot connect to Anki Connect ($ANKI_CONNECT_URL)"
+        )
+      )
   }
   private def getActiveDeck(
       deckName: Option[String]
@@ -67,17 +75,26 @@ object Application extends IOApp {
           val card = formatCard(definition)
           ankiClient
             .addNote(deckName, card)
-            .flatTap(_ => IO(logger.info(s"Card \"${card._1}\": note was added")))
+            .flatTap(_ =>
+              IO(logger.info(s"Card \"${card._1}\": note was added"))
+            )
             .as(true)
             .handleErrorWith {
               case err: InvalidMessageBodyFailure
                   if err.getMessage.contains("Could not decode JSON") =>
                 IO(logger.info(s"Card \"$word\": note was added")) *> IO(true)
               // TODO: fix decoder
-              case err if err.getMessage.contains("cannot create note because it is a duplicate") =>
-                IO(logger.warn(s"Card \"$word\": ${err.getMessage}")) *> IO(false)
+              case err
+                  if err.getMessage.contains(
+                    "cannot create note because it is a duplicate"
+                  ) =>
+                IO(logger.warn(s"Card \"$word\": ${err.getMessage}")) *> IO(
+                  false
+                )
               case err =>
-                IO(logger.error(s"Card \"$word\": ${err.getMessage}")) *> IO(false)
+                IO(logger.error(s"Card \"$word\": ${err.getMessage}")) *> IO(
+                  false
+                )
             }
         case Left(_) => IO(false)
       }
@@ -105,32 +122,40 @@ object Application extends IOApp {
     dict.meanings
       .map(meaning => {
         val definitions =
-          meaning.definitions.zipWithIndex.map { case (d, i) => s"${i + 1}. ${d.definition}" }
+          meaning.definitions.zipWithIndex.map { case (d, i) =>
+            s"${i + 1}. ${d.definition}"
+          }
         s"<i>${meaning.partOfSpeech}</i><br/>${definitions.mkString("<br/>")}"
       })
       .mkString("<br/><br/>")
   )
 
   def run(args: List[String]): IO[ExitCode] = {
-    val config: Args.Config                    = OParser.parse(Args.parser, args, Args.Config()).get
+    val config: Args.Config =
+      OParser.parse(Args.parser, args, Args.Config()).get
     implicit val ankiClient: AnkiConnectClient = AnkiConnectClient(config)
 
     for {
-      inputFile <- IO.fromOption(config.file)(new RuntimeException("Input file wasn't specified"))
+      inputFile <- IO.fromOption(config.file)(
+        new RuntimeException("Input file wasn't specified")
+      )
       source = Source.fromFile(inputFile)
 
-      _          <- runAnki(config.ankiBinaryPath)
+      _ <- runAnki(config.ankiBinaryPath)
       activeDeck <- getActiveDeck(config.deck)
       activeDeckName = activeDeck.name
-      _              = logger.info(s"Using deck \"$activeDeckName\"")
+      _ = logger.info(s"Using deck \"$activeDeckName\"")
 
       cardsToAdd = (config.maxCardsToAdd, config.maxUnlearnedCards) match {
-        case (max, None)               => max
-        case (max, Some(maxUnlearned)) => min(max, maxUnlearned - activeDeck.learn_count)
+        case (max, None) => max
+        case (max, Some(maxUnlearned)) =>
+          min(max, maxUnlearned - activeDeck.learn_count)
       }
       _ <- IO.whenA(cardsToAdd <= 0)(
         IO.raiseError(
-          new RuntimeException("No cards should be added at this time due to 'max' argument")
+          new RuntimeException(
+            "No cards should be added at this time due to 'max' argument"
+          )
         )
       )
       _ = logger.info(s"Cards to add: $cardsToAdd")
@@ -138,12 +163,18 @@ object Application extends IOApp {
       wordlist <- IO(source).bracket(src =>
         IO(src.getLines().map(_.trim).filter(_.nonEmpty).toList)
       )(source => IO(source.close()))
-      leftovers <- dropUntilSucceededN(wordlist, cardsToAdd, addDefinition(activeDeckName))
+      leftovers <- dropUntilSucceededN(
+        wordlist,
+        cardsToAdd,
+        addDefinition(activeDeckName)
+      )
 
       inputFilePath = Paths.get(inputFile.getAbsolutePath)
-      tmpFilePath   = Paths.get(inputFilePath.toString + ".tmp")
+      tmpFilePath = Paths.get(inputFilePath.toString + ".tmp")
       _ <- IO(new java.io.PrintWriter(tmpFilePath.toFile)).bracket(writer => {
-        IO(writer.write(leftovers.mkString(System.lineSeparator))) *> IO(writer.flush())
+        IO(writer.write(leftovers.mkString(System.lineSeparator))) *> IO(
+          writer.flush()
+        )
       })(writer => IO(writer.close()))
 
       _ = Files.delete(inputFilePath)
