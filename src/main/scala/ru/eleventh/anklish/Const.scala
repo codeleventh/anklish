@@ -14,6 +14,7 @@ object Const {
 
   val ANKI_CONNECT_URL     = "http://localhost:8765"
   val ANKI_CONNECT_VERSION = 6
+  val ANKI_CONNECT_RETRY = 3.seconds
 
   val DEFAULT_DECK_ID = 1L
 }
