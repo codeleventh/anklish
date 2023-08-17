@@ -44,8 +44,14 @@ object Args {
         .optional()
         .maxOccurs(1)
         .text(
-          "The maximum number of unlearned cards allowed in the deck (taking into account the existing ones).\nThis parameter (if it isn't greater) takes precedence over previous one"
+          "The maximum number of unlearned cards allowed in the deck (taking into account the existing ones)\nThis parameter (if it isn't greater) takes precedence over previous one"
         ),
+      opt[Unit]("reversible")
+        .abbr("rev")
+        .action((x, c) => c.copy(reversible = true))
+        .optional()
+        .maxOccurs(1)
+        .text("Parameter that adds reversed copy of card"),
       arg[File]("<input_file>")
         .required()
         .maxOccurs(1)
@@ -56,10 +62,11 @@ object Args {
   }
 
   case class Config(
-      maxUnlearnedCards: Option[Int] = None,
-      maxCardsToAdd: Int = ARG_MAX_CARDS,
-      ankiBinaryPath: String = ARG_ANKI_BINARY_PATH,
-      deck: Option[String] = None,
-      file: Option[File] = None
-  )
+                     maxUnlearnedCards: Option[Int] = None,
+                     maxCardsToAdd: Int = ARG_MAX_CARDS,
+                     ankiBinaryPath: String = ARG_ANKI_BINARY_PATH,
+                     deck: Option[String] = None,
+                     reversible: Boolean = false,
+                     file: Option[File] = None
+                   )
 }
