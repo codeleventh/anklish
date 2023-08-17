@@ -1,11 +1,13 @@
 # Anklish
 
 ![](https://gist.githubusercontent.com/codeleventh/dbf7cfd9c2def11474500737a0443f58/raw/f81287f841e6a90497b881c65725d520a388fc8a/anklish.png)  
-This is a Scala application for automatic creating of Anki flashcards with English words definitions.  
-It reads an input file with words, requests a dictionary definitions (via [third-party API](https://dictionaryapi.dev)), and then creates the cards in a deck (by small chunks, depending on the settings).  
+This is a Scala application for automatic creating Anki flashcards with English words definitions.  
+It reads an input file with words, requests a dictionary definitions (via [third-party API](https://dictionaryapi.dev)),
+and then creates the cards in a deck (by small chunks, depending on the settings).
 
-My use case: I use [frequency dictionary](https://github.com/first20hours/google-10000-english/blob/master/20k.txt) (which has been truncated at the suitable point). I also include bookmarked words from my reader app which are periodically imported by a third-party script.  
-The program is triggered weekly through cron task.
+My use case: I use [frequency dictionary](https://github.com/first20hours/google-10000-english/blob/master/20k.txt) (
+which has been truncated at the suitable point) prepended with words that I bookmarked in my reader app (those words are
+periodically imported by a third-party script). The program is executed daily through cron task.
 
 ## Prerequisites
 * [Scala Build Tool](https://www.scala-sbt.org/)  
@@ -24,8 +26,9 @@ Command-line options:
   --max-cards-to-add <value>
                            The maximum number of cards to be added to the deck (10 as a default)
   -max, --max-unlearned-cards <value>
-                           The maximum number of unlearned cards allowed in the deck (taking into account the existing ones).
+                           The maximum number of unlearned cards allowed in the deck (taking into account the existing ones)
                            This parameter (if it isn't greater) takes precedence over previous one
+  -rev, --reversible       Parameter that adds reversed copy of card along with the regular one
   <input_file>             Input file containing the word list
   --help                   Print help and exit
 ```
